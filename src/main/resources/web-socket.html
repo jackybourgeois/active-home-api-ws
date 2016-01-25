@@ -1,0 +1,201 @@
+<!--
+  #%L
+  Active Home :: API :: WS
+  $Id:$
+  $HeadURL:$
+  %%
+  Copyright (C) 2016 org.activehome
+  %%
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as
+  published by the Free Software Foundation, either version 3 of the 
+  License, or (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public 
+  License along with this program.  If not, see
+  <http://www.gnu.org/licenses/gpl-3.0.html>.
+  #L%
+  -->
+<dom-module id="web-socket">
+    <script>
+        Polymer({
+            is: 'web-socket',
+
+            properties: {
+                url: String
+            },
+            socket: null,
+            register: {},
+            user: "",
+            time: null,
+            token: null,
+            loggedIn: false,
+
+            ready: function () {
+
+            },
+
+            connect: function () {
+                if (window.WebSocket) {
+                    var comp = this;
+                    comp.socket = new WebSocket(comp.url);
+                    comp.socket.onmessage = function (event) {
+                        comp.manageIncomingMessage(event, comp);
+                    };
+                    comp.socket.onopen = function (event) {
+                        if (localStorage.userid && localStorage.pass) {
+                            comp.user = localStorage.userid;
+                            comp.request("web-socket", "ah.auth", "authenticate",
+                                    [localStorage.userid, localStorage.pass]);
+                        }
+                        comp.fire('websocket-ready');
+                    };
+                    comp.socket.onclose = function (event) {
+                        comp.fire('websocket-closed');
+                        comp.loggedIn = false;
+                        setTimeout(function () {
+                            comp.connect(comp.url)
+                        }, 5000);
+                    };
+                } else {
+                    alert("Your browser does not support Websockets. (Use Chrome)");
+                }
+            },
+
+            send: function (src, method, param) {
+                this.socket.send(JSON.stringify({src: src, method: method, param: param, token: this.token}));
+            },
+
+            request: function (src, dest, method, params) {
+                if (!window.WebSocket) return;
+                var d = new Date();
+                var req = {};
+                req.id = this.guid();
+                req.src = src;
+                req.ts = d.getTime();
+                req.dest = dest;
+                req.method = method;
+                if (params != undefined) {
+                    req.params = params.constructor === Array ? params : [params];
+                }
+                if (this.token != null) {
+                    req.token = this.token;
+                }
+
+                if (this.socket.readyState == WebSocket.OPEN) {
+                    this.socket.send(JSON.stringify(req));
+                } else {
+                    console.log("The socket is not open.");
+                }
+            },
+
+            manageIncomingMessage: function (event, comp) {
+                var json = JSON.parse(event.data);
+                if (json.hasOwnProperty("dest")) {
+                    if (json.dest == "web-socket" ||
+                            (json.dest.split(".").length == 2 && json.dest.split(".")[1] == "web-socket")) {
+                        if (json.hasOwnProperty("result") && json.result.hasOwnProperty("token")) {
+                            comp.token = json.result.token;
+                            comp.fire('websocket-loggedIn', {userId: comp.user, token: comp.token});
+                            comp.loggedIn = true;
+                            if (comp.token != null && comp.user != "") {
+                                for (src in comp.register) {
+                                    for (key in comp.register[src].metrics) {
+                                        comp.subscribe(src, comp.register[src].metrics[key])
+                                    }
+                                }
+                            }
+                        } else if (json.hasOwnProperty("content") && json.content.hasOwnProperty("time")) {
+                            comp.time = json.content.time;
+                            comp.fire('tic', json.content.time);
+                        }
+                    } else {
+                        if (comp.register[json.dest] != undefined) {
+                            comp.register[json.dest].comp.input(json);
+                        } else {
+                            var dest = document.getElementById(json.dest);
+                            if (dest != undefined) {
+                                dest.input(json);
+                            } else {
+                                console.log("Msg Ignored, cannot understand: ");
+                                console.log(json);
+                            }
+                        }
+                    }
+                }
+            },
+
+            getLocalTime: function () {
+                return this.time.ts + this.time.timezone * 3600000;
+            },
+
+            getTimeZone: function () {
+                return this.time.timezone;
+            },
+
+            subscribe: function (src, metric, comp) {
+                if (this.register[src] == undefined) {
+                    this.register[src] = {comp: comp, metrics: []};
+                }
+                var exist = false;
+                for (key in this.register[src]) {
+                    if (this.register[src].metrics[key] == metric) {
+                        exist = true;
+                    }
+                }
+                if (!exist) {
+                    this.register[src].metrics.push(metric);
+                }
+                if (this.user != "") {
+                    this.request(src, src.split(".")[0] + ".context", "subscribe", [[metric], src]);
+                } else {
+                    this.request(src, src.split(".")[0] + ".context", "subscribe", [[metric], src]);
+                }
+            },
+
+            unsubscribe: function (src, metric) {
+                if (this.register[src] != undefined) {
+                    var metricToUnsubscribe = [];
+                    if (metric != undefined) {
+                        metricToUnsubscribe.push(metric);
+                        delete this.register[src].metrics[metric];
+                    } else {
+                        for (key in this.register[src].metrics) {
+                            metricToUnsubscribe.push(this.register[src].metrics[key]);
+                        }
+                        delete this.register[src];
+                    }
+                    if (this.user != "") {
+                        this.request(src, src.split(".")[0] + ".context", "unsubscribe", [metricToUnsubscribe, this.user + "." + src]);
+                    }
+                }
+            },
+
+            guid: function () {
+                function s4() {
+                    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+                }
+
+                return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+                        s4() + '-' + s4() + s4() + s4();
+            },
+
+            getCookie: function (cname) {
+                var name = cname + "=";
+                var ca = document.cookie.split(';');
+                for (var i = 0; i < ca.length; i++) {
+                    var c = ca[i];
+                    while (c.charAt(0) == ' ') c = c.substring(1);
+                    if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+                }
+                return "";
+            }
+
+        });
+    </script>
+</dom-module>
