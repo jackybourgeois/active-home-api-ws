@@ -30,6 +30,10 @@ import org.activehome.context.data.UserInfo;
 
 import java.util.UUID;
 
+/**
+ * @author Jacky Bourgeois
+ * @version %I%, %G%
+ */
 class WSConnection {
 
     private final String connectionId;

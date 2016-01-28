@@ -54,11 +54,26 @@ import java.util.UUID;
 import static io.undertow.Handlers.websocket;
 
 /**
- * WebSocket API - allow the system to receive and send Message
- * through a websocket connection.
+ * @author Jacky Bourgeois
+ * @version %I%, %G%
  */
 @ComponentType
 public class WsAPI extends API {
+
+    @Param(defaultValue = "WebSocket API - allow the system to receive and send Message through a websocket connection.")
+    private String description;
+
+    @Param(defaultValue = "/activehome-api-ws/master/docs/wsAPI.png")
+    private String img;
+
+    @Param(defaultValue = "/activehome-api-ws/master/docs/wsAPI.md")
+    private String doc;
+
+    @Param(defaultValue = "/activehome-api-ws/master/docs/wsAPI.kevs")
+    private String demoScript;
+
+    @Param(defaultValue = "/activehome-api-ws")
+    private String src;
 
     private HashMap<WebSocketChannel, WSConnection> connections;
     private Undertow server;
