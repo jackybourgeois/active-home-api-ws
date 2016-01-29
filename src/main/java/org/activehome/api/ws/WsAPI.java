@@ -62,17 +62,7 @@ public class WsAPI extends API {
 
     @Param(defaultValue = "Allow the system to receive and send Message through a websocket connection.")
     private String description;
-
-    @Param(defaultValue = "/activehome-api-ws/master/docs/wsAPI.png")
-    private String img;
-
-    @Param(defaultValue = "/activehome-api-ws/master/docs/wsAPI.md")
-    private String doc;
-
-    @Param(defaultValue = "/activehome-api-ws/master/docs/wsAPI.kevs")
-    private String demoScript;
-
-    @Param(defaultValue = "/activehome-api-ws")
+    @Param(defaultValue = "/active-home-api-ws")
     private String src;
 
     private HashMap<WebSocketChannel, WSConnection> connections;
@@ -139,8 +129,8 @@ public class WsAPI extends API {
     public void startWssServer() {
         Log.info("Starting wss server on: " + address + ":" + port);
         try {
-            String ksName = System.getProperty("activehome.home") + "/keystore.jks";
-            Properties prop = Util.loadProperties(System.getProperty("activehome.home") + "/properties/config.properties");
+            String ksName = System.getProperty("active-home.home") + "/keystore.jks";
+            Properties prop = Util.loadProperties(System.getProperty("active-home.home") + "/properties/config.properties");
             char ksPass[] = prop.getProperty("ssh_ks").toCharArray();
             char ctPass[] = prop.getProperty("ssh_ct").toCharArray();
 
