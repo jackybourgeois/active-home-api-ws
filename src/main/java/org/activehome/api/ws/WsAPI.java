@@ -6,7 +6,7 @@ package org.activehome.api.ws;
  * $Id:$
  * $HeadURL:$
  * %%
- * Copyright (C) 2016 org.activehome
+ * Copyright (C) 2016 Active Home Project
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -60,7 +60,7 @@ import static io.undertow.Handlers.websocket;
 @ComponentType
 public class WsAPI extends API {
 
-    @Param(defaultValue = "WebSocket API - allow the system to receive and send Message through a websocket connection.")
+    @Param(defaultValue = "Allow the system to receive and send Message through a websocket connection.")
     private String description;
 
     @Param(defaultValue = "/activehome-api-ws/master/docs/wsAPI.png")
